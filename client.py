@@ -1,5 +1,6 @@
 from enum import Enum
 import argparse
+import socket
 
 class client :
 
@@ -17,13 +18,15 @@ class client :
 
     # ******************** METHODS *******************
 
-
     @staticmethod
     def  register(user) :
-        #  Write your code here
+        # Función de registro de cliente
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+        
         return client.RC.ERROR
 
-   
     @staticmethod
     def  unregister(user) :
         #  Write your code here
@@ -35,8 +38,6 @@ class client :
     def  connect(user) :
         #  Write your code here
         return client.RC.ERROR
-
-
     
     @staticmethod
     def  disconnect(user) :
@@ -172,8 +173,8 @@ class client :
             parser.error("Error: Port must be in the range 1024 <= port <= 65535");
             return False;
         
-        _server = args.s
-        _port = args.p
+        client._server = args.s
+        client._port = args.p
 
         return True
 
