@@ -2,12 +2,12 @@ from enum import Enum
 import argparse
 import socket
 
-class client :
+class client:
 
     # ******************** TYPES *********************
     # *
     # * @brief Return codes for the protocol methods
-    class RC(Enum) :
+    class RC(Enum):
         OK = 0
         ERROR = 1
         USER_ERROR = 2
@@ -15,49 +15,266 @@ class client :
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
+    _user = ""
 
     # ******************** METHODS *******************
 
     @staticmethod
-    def  register(user) :
+    def register(user):
         # Función de registro de cliente
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
-        
-        return client.RC.ERROR
+        res = client.RC.ERROR
+
+        try:
+            sd.sendall(b'REGISTER\0')
+            sd.sendall((user+'\0').encode())
+            respuesta = ''
+
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+        finally:
+            sd.close()
+            return res
 
     @staticmethod
-    def  unregister(user) :
-        #  Write your code here
-        return client.RC.ERROR
+    def unregister(user):
+        # Función de baja de registro de cliente
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+        res = client.RC.ERROR
+
+        try:
+            sd.sendall(b'UNREGISTER\0')
+            sd.sendall((user+'\0').encode())
+            respuesta = ''
+
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+        finally:
+            sd.close()
+            return res
 
 
-    
     @staticmethod
-    def  connect(user) :
-        #  Write your code here
-        return client.RC.ERROR
+    def connect(user):
+        # Función de connect de cliente
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+        res = client.RC.ERROR
+
+        try:
+            sd.sendall(b'CONNECT\0')
+            sd.sendall((user+'\0').encode())
+            sd.sendall((str(client._port) + '\0').encode())
+            respuesta = ''
+
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+                elif respuesta == b'3':
+                    res = 3
+                    break
+        finally:
+            sd.close()
+            return res
     
     @staticmethod
     def  disconnect(user) :
-        #  Write your code here
-        return client.RC.ERROR
+        # Función de disconnect de cliente
+        # Se crea el socket
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+
+        # Se inicializa la respuesta
+        res = client.RC.ERROR
+
+        try:
+            # Se manda la operación y el usuario
+            sd.sendall(b'DISCONNECT\0')
+            sd.sendall((user+'\0').encode())
+            respuesta = ''
+
+            # Se espera a la respuesta
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+                elif respuesta == b'3':
+                    res = 3
+                    break
+        finally:
+            # Se cierra el socket
+            sd.close()
+            return res
 
     @staticmethod
     def  publish(fileName,  description) :
-        #  Write your code here
-        return client.RC.ERROR
+        # Función de publish de cliente
+
+        # Se crea el socket
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+
+        # Se inicializa la respuesta
+        res = client.RC.ERROR
+
+        try:
+            # Se manda la operación y el usuario
+            sd.sendall(b'PUBLISH\0')
+            sd.sendall((client._user+'\0').encode())
+            sd.sendall((fileName + '\0').encode())
+            sd.sendall((description + '\0').encode())
+
+            respuesta = ''
+
+            # Se espera a la respuesta
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+                elif respuesta == b'3':
+                    res = 3
+                    break
+                elif respuesta == b'4':
+                    res = 4
+                    break
+        finally:
+            # Se cierra el socket
+            sd.close()
+            return res
 
     @staticmethod
     def  delete(fileName) :
-        #  Write your code here
-        return client.RC.ERROR
+        # Se crea el socket
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+
+        # Se inicializa la respuesta
+        res = client.RC.ERROR
+
+        try:
+            # Se manda la operación y el usuario
+            sd.sendall(b'DELETE\0')
+            sd.sendall((client._user+'\0').encode())
+            sd.sendall((fileName + '\0').encode())
+
+            respuesta = ''
+
+            # Se espera a la respuesta
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+                elif respuesta == b'3':
+                    res = 3
+                    break
+                elif respuesta == b'4':
+                    res = 4
+                    break
+        finally:
+            # Se cierra el socket
+            sd.close()
+            return res
 
     @staticmethod
     def  listusers() :
-        #  Write your code here
-        return client.RC.ERROR
+        # Función de disconnect de cliente
+        # Se crea el socket
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+
+        # Se inicializa la respuesta
+        res = client.RC.ERROR
+
+        try:
+            # Se manda la operación y el usuario
+            sd.sendall(b'DISCONNECT\0')
+            sd.sendall((client._user+'\0').encode())
+            respuesta = ''
+
+            # Se espera a la respuesta
+            while True:
+                respuesta = sd.recv(1)
+                if respuesta ==  b'0':
+                    res = client.RC.OK
+                    n_user = int.from_bytes(sd.recv(1), "little")
+                    print(n_user)
+                    lista = {}
+                    for i in range (n_user):
+                        username= (sd.recv(256)).decode()
+                        ip_user = (sd.recv(32)).decode()
+                        port_user = (sd.recv(8)).decode()
+                        lista[username] = (ip_user, port_user)
+                    break
+                elif respuesta == b'1':
+                    res = client.RC.ERROR
+                    break
+                elif respuesta == b'2':
+                    res = client.RC.USER_ERROR
+                    break
+                elif respuesta == b'3':
+                    res = 3
+                    break
+        finally:
+            # Se cierra el socket
+            sd.close()
+            return res
+
 
     @staticmethod
     def  listcontent(user) :
@@ -75,8 +292,8 @@ class client :
     @staticmethod
     def shell():
 
-        while (True) :
-            try :
+        while (True):
+            try:
                 command = input("c> ")
                 line = command.split(" ")
                 if (len(line) > 0):
@@ -86,6 +303,7 @@ class client :
                     if (line[0]=="REGISTER") :
                         if (len(line) == 2) :
                             client.register(line[1])
+                            print(client.register(line[1]))
                         else :
                             print("Syntax error. Usage: REGISTER <userName>")
 
@@ -98,6 +316,7 @@ class client :
                     elif(line[0]=="CONNECT") :
                         if (len(line) == 2) :
                             client.connect(line[1])
+                            client._user = line[1]
                         else :
                             print("Syntax error. Usage: CONNECT <userName>")
                     

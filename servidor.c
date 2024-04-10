@@ -33,32 +33,83 @@ int sd_copy(int sd){
 }
 
 void register_server(int * newsd) {
-	int sd = sd_copy(*newsd);
+    int sd = sd_copy(*newsd);
+    char res = '0';
+    char buffer[256];
+    read_line(sd, buffer, 256);
+    printf("Nombre recibido: %s\n", buffer);
+    write_line(sd, &res);
 	return;
 }
 
 void unregister_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char buffer[256];
+    read_line(sd, buffer, 256);
+    printf("Nombre recibido: %s\n", buffer);
+    write_line(sd, &res);
 	return;
 }
 
 void connect_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+    char puerto[8];
+    read_line(sd, puerto, 8);
+    printf("Puerto recibido: %s\n", puerto);
+    write_line(sd, &res);
 	return;
 }
 
 void publish_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+    char fichero[256];
+    read_line(sd, fichero, 256);
+    printf("Fichero recibido: %s\n", fichero);
+    char descr[256];
+    read_line(sd, descr, 256);
+    printf("Descripcion recibido: %s\n", descr);
+    write_line(sd, &res);
 	return;
 }
 
 void delete_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+    char fichero[256];
+    read_line(sd, fichero, 256);
+    printf("Fichero recibido: %s\n", fichero);
+
+    write_line(sd, &res);
 	return;
 }
 
 void list_users_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+
+    write_line(sd, "0");
+    write_line(sd, "1");
+    for (int i = 0; i < 1; i++) {
+        write_line(sd, "alicia");
+        write_line(sd, "1111.2222.3333.4444");
+        write_line(sd, "42069");
+    }
+
 	return;
 }
 
@@ -69,6 +120,11 @@ void list_content_server(int * newsd) {
 
 void disconnect_server(int * newsd) {
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+    write_line(sd, &res);
 	return;
 }
 
@@ -121,49 +177,54 @@ int main(int argc, char **argv) {
 	if (socket_server < 0) {
 		return -1;
 	}
-	char buffer[4];
+	char buffer[16];
 	memset(buffer, cero, sizeof(buffer));
 	int new_sd;
 	
 	// Bucle de espera a las peticiones
-	char op;
 	while(1) {
 		new_sd = accept_server(socket_server);
 		
 		// Si se acepta correctamente la petición
 		if (new_sd >= 0) {
 			
-			if (read_line(new_sd, buffer, 4) == -1) {
+			if (read_line(new_sd, buffer, 16) == -1) {
 				printf("Error: no se lee la operación\n");
 				close(new_sd);
 			}
 			
 			// Si se lee bien la operación
 			else {
-			
-				op = buffer[0];
-				printf("Conexión aceptada: procesando petición con id %c\n", op);
+
+				printf("Conexión aceptada: procesando %s\n", buffer);
 				
 				pthread_t thread;
 				// Llamada a las funciones
-				switch(op) {
-					case '1': pthread_create(&thread, &attr_thr, (void*)register_server, (void*)&new_sd);
-						break;
-					case '2': pthread_create(&thread, &attr_thr, (void*)unregister_server, (void*)&new_sd);
-						break;
-					case '3': pthread_create(&thread, &attr_thr, (void*)connect_server, (void*)&new_sd);
-						break;
-					case '4': pthread_create(&thread, &attr_thr, (void*)publish_server, (void*)&new_sd);
-						break;
-					case '5': pthread_create(&thread, &attr_thr, (void*)delete_server, (void*)&new_sd);
-						break;
-					case '6': pthread_create(&thread, &attr_thr, (void*)list_users_server, (void*)&new_sd);
-						break;
-					case '7': pthread_create(&thread, &attr_thr, (void*)list_content_server, (void*)&new_sd);
-						break;
-					case '8': pthread_create(&thread, &attr_thr, (void*)disconnect_server, (void*)&new_sd);
-						break;
-				}
+                if (strcmp(buffer, "REGISTER") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)register_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "UNREGISTER") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)unregister_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "CONNECT") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)connect_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "PUBLISH") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)publish_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "DELETE") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)delete_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "LIST_USERS") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)list_users_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "LIST_CONTENT") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)list_content_server, (void*)&new_sd);
+                }
+                else if (strcmp(buffer, "DISCONNECT") == 0) {
+                    pthread_create(&thread, &attr_thr, (void*)disconnect_server, (void*)&new_sd);
+                }
+
 				pthread_mutex_lock(&mutex);
 				while (copia == 0){
 					pthread_cond_wait(&copiado, &mutex);
