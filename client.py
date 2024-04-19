@@ -243,17 +243,21 @@ class client:
 
         try:
             # Se manda la operación y el usuario
-            sd.sendall(b'DISCONNECT\0')
+            sd.sendall(b'LIST_USERS\0')
             sd.sendall((client._user+'\0').encode())
             respuesta = ''
 
             # Se espera a la respuesta
             while True:
                 respuesta = sd.recv(1)
+                print(respuesta)
                 if respuesta ==  b'0':
                     res = client.RC.OK
-                    n_user = int.from_bytes(sd.recv(1), "little")
-                    print(n_user)
+                    while(True):
+                    	n_user = sd.recv(1)
+                    	if (n_user > 0):
+                    		break
+                    		
                     lista = {}
                     for i in range (n_user):
                         username= (sd.recv(256)).decode()

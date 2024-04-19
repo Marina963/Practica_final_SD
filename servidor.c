@@ -105,11 +105,10 @@ void list_users_server(int * newsd) {
     write_line(sd, "0");
     write_line(sd, "1");
     for (int i = 0; i < 1; i++) {
-        write_line(sd, "alicia");
-        write_line(sd, "1111.2222.3333.4444");
-        write_line(sd, "42069");
+        //write_line(sd, "alicia");
+        //write_line(sd, "1111.2222.3333.4444");
+        //write_line(sd, "42069");
     }
-
 	return;
 }
 
