@@ -9,8 +9,10 @@ class client:
     # * @brief Return codes for the protocol methods
     class RC(Enum):
         OK = 0
-        ERROR = 1
-        USER_ERROR = 2
+        ERROR_1 = 1
+        ERROR_2 = 2
+        ERROR_3 = 3
+        ERROR_4 = 4
 
     # ****************** ATTRIBUTES ******************
     _server = None
@@ -25,24 +27,20 @@ class client:
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
-        res = client.RC.ERROR
+        res = client.RC.ERROR_2
 
         try:
-            sd.sendall(b'REGISTER\0')
-            sd.sendall((user+'\0').encode())
+            client.write_string(sd, b'REGISTER\0')
+            client.write_string(sd, (user+'\0').encode())
             respuesta = ''
 
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
+            respuesta = client.read_string(sd)
+            if respuesta ==  '0':
+                res = client.RC.OK
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
         finally:
             sd.close()
             return res
@@ -53,24 +51,24 @@ class client:
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
-        res = client.RC.ERROR
+        res = client.RC.ERROR_2
 
         try:
-            sd.sendall(b'UNREGISTER\0')
-            sd.sendall((user+'\0').encode())
+            client.write_string(sd, b'UNREGISTER\0')
+            client.write_string(sd, (user+'\0').encode())
+           
             respuesta = ''
 
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
+            respuesta = client.read_string(sd)
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+                
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
         finally:
             sd.close()
             return res
@@ -82,28 +80,29 @@ class client:
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
-        res = client.RC.ERROR
+        res = client.RC.ERROR_3
 
         try:
-            sd.sendall(b'CONNECT\0')
-            sd.sendall((user+'\0').encode())
-            sd.sendall((str(client._port) + '\0').encode())
+            client.write_string(sd, b'CONNECT\0')
+            client.write_string(sd, (user+'\0').encode())
+            client.write_string(sd, (str(client._port) + '\0').encode())
             respuesta = ''
-
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
-                elif respuesta == b'3':
-                    res = 3
-                    break
+            
+            respuesta = client.read_string(sd)
+          
+            
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+                
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == b'3':
+                res = client.RC.ERROR_3
+                
         finally:
             sd.close()
             return res
@@ -117,29 +116,29 @@ class client:
         sd.connect(server_address)
 
         # Se inicializa la respuesta
-        res = client.RC.ERROR
+        res = client.RC.ERROR_3
 
         try:
             # Se manda la operación y el usuario
-            sd.sendall(b'DISCONNECT\0')
-            sd.sendall((user+'\0').encode())
+            client.write_string(sd, b'DISCONNECT\0')
+            client.write_string(sd, (user+'\0').encode())
             respuesta = ''
 
             # Se espera a la respuesta
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
-                elif respuesta == b'3':
-                    res = 3
-                    break
+            respuesta = client.read_string(sd)
+             
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+                
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == '3':
+                res = client.RC.ERROR_3
+                
         finally:
             # Se cierra el socket
             sd.close()
@@ -155,35 +154,36 @@ class client:
         sd.connect(server_address)
 
         # Se inicializa la respuesta
-        res = client.RC.ERROR
+        res = client.RC.ERROR_4
 
         try:
             # Se manda la operación y el usuario
-            sd.sendall(b'PUBLISH\0')
-            sd.sendall((client._user+'\0').encode())
-            sd.sendall((fileName + '\0').encode())
-            sd.sendall((description + '\0').encode())
+            client.write_string(sd, b'PUBLISH\0')
+            client.write_string(sd, (client._user+'\0').encode())
+            client.write_string(sd, (fileName + '\0').encode())
+            client.write_string(sd, (description + '\0').encode())
 
             respuesta = ''
 
             # Se espera a la respuesta
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
-                elif respuesta == b'3':
-                    res = 3
-                    break
-                elif respuesta == b'4':
-                    res = 4
-                    break
+            respuesta = client.read_string(sd)
+        
+                
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+                
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == '3':
+                res = client.RC.ERROR_3
+                
+            elif respuesta == '4':
+                res = client.RC.ERROR_4
+                
         finally:
             # Se cierra el socket
             sd.close()
@@ -197,34 +197,34 @@ class client:
         sd.connect(server_address)
 
         # Se inicializa la respuesta
-        res = client.RC.ERROR
+        res = client.RC.ERROR_1
 
         try:
             # Se manda la operación y el usuario
-            sd.sendall(b'DELETE\0')
-            sd.sendall((client._user+'\0').encode())
-            sd.sendall((fileName + '\0').encode())
+            client.write_string(sd, b'DELETE\0')
+            client.write_string(sd, (client._user+'\0').encode())
+            client.write_string(sd, (fileName + '\0').encode())
 
             respuesta = ''
 
             # Se espera a la respuesta
-            while True:
-                respuesta = sd.recv(1)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
-                elif respuesta == b'3':
-                    res = 3
-                    break
-                elif respuesta == b'4':
-                    res = 4
-                    break
+          
+            respuesta =client.read_string(sd)
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == '3':
+                res = client.RC.ERROR_3
+                
+            elif respuesta == '4':
+                res = client.RC.ERROR_4
+                    
         finally:
             # Se cierra el socket
             sd.close()
@@ -239,41 +239,41 @@ class client:
         sd.connect(server_address)
 
         # Se inicializa la respuesta
-        res = client.RC.ERROR
+        res = client.RC.ERROR_3
 
         try:
             # Se manda la operación y el usuario
-            sd.sendall(b'LIST_USERS\0')
-            sd.sendall((client._user+'\0').encode())
+            client.write_string(sd, b'LIST_USERS\0')
+            client.write_string(sd, (client._user+'\0').encode())
             respuesta = ''
 
             # Se espera a la respuesta
-            while True:
-                respuesta = sd.recv(1)
-                print(respuesta)
-                if respuesta ==  b'0':
-                    res = client.RC.OK
-                    while(True):
-                    	n_user = sd.recv(1)
-                    	if (n_user > 0):
-                    		break
-                    		
-                    lista = {}
-                    for i in range (n_user):
-                        username= (sd.recv(256)).decode()
-                        ip_user = (sd.recv(32)).decode()
-                        port_user = (sd.recv(8)).decode()
-                        lista[username] = (ip_user, port_user)
-                    break
-                elif respuesta == b'1':
-                    res = client.RC.ERROR
-                    break
-                elif respuesta == b'2':
-                    res = client.RC.USER_ERROR
-                    break
-                elif respuesta == b'3':
-                    res = 3
-                    break
+            
+            respuesta = client.read_string(sd)
+            
+            if respuesta ==  '0':
+                res = client.RC.OK
+                n_user = client.read_string(sd)
+                
+                print(n_user)
+                lista = {}
+                for i in range (n_user):
+                    username= client.read_string(sd)
+                    ip_user = client.read_string(sd)
+                    port_user = client.read_number(sd)
+                    lista[username] = (ip_user, port_user)
+                
+                print(lista)
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+                
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == '3':
+                res = client.RC.ERROR_3
+                   
         finally:
             # Se cierra el socket
             sd.close()
@@ -282,8 +282,44 @@ class client:
 
     @staticmethod
     def  listcontent(user) :
-        #  Write your code here
-        return client.RC.ERROR
+       # Se crea el socket
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_address = (client._server, client._port)
+        sd.connect(server_address)
+
+        # Se inicializa la respuesta
+        res = client.RC.ERROR_1
+
+        try:
+            # Se manda la operación y el usuario
+            client.write_string(sd, b'LIST_CONTENT\0')
+            client.write_string(sd, (user+'\0').encode())
+           
+
+            respuesta = ''
+
+            # Se espera a la respuesta
+          
+            respuesta =client.read_string(sd)
+            if respuesta ==  '0':
+                res = client.RC.OK
+                
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+                
+            elif respuesta == '3':
+                res = client.RC.ERROR_3
+                
+            elif respuesta == '4':
+                res = client.RC.ERROR_4
+                    
+        finally:
+            # Se cierra el socket
+            sd.close()
+            return res
 
     @staticmethod
     def  getfile(user,  remote_FileName,  local_FileName) :
@@ -306,8 +342,13 @@ class client:
 
                     if (line[0]=="REGISTER") :
                         if (len(line) == 2) :
-                            client.register(line[1])
-                            print(client.register(line[1]))
+                            resultado = client.register(line[1]) 
+                            if resultado == client.RC.OK:
+                                print("c> REGISTER OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> USERNAME IN USE")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> REGISTER FAIL")
                         else :
                             print("Syntax error. Usage: REGISTER <userName>")
 
@@ -394,13 +435,36 @@ class client:
 
         if ((args.p < 1024) or (args.p > 65535)):
             parser.error("Error: Port must be in the range 1024 <= port <= 65535");
-            return False;
+            return False
         
         client._server = args.s
         client._port = args.p
 
         return True
 
+    @staticmethod
+    def read_string(sock):
+        str = ''
+        while True:
+            msg = sock.recv(1)
+            if (msg == b'\0'):
+                break
+            str += msg.decode()
+            return str
+        
+    @staticmethod
+    def write_string(sock, str):
+        sock.sendall(str)
+        
+    @staticmethod
+    def read_number(sock):
+        a = client.read_string(sock)
+        return(int(a,10))
+
+    @staticmethod
+    def write_number(sock, num):
+        a = str(num) + b'\0'
+        client.write_string(sock, a)
 
     # ******************** MAIN *********************
     @staticmethod

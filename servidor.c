@@ -15,7 +15,7 @@
 #define cero 0
 
 // Paths
-const char *rel_path="./tuplas";
+const char *rel_path="./users";
 char *abs_path;
 
 // Variables de mutex
@@ -32,13 +32,37 @@ int sd_copy(int sd){
     return sd;
 }
 
+void get_username_path(char *username, char *name){
+    sprintf(username, "%s/%s", abs_path, name);         
+}
+
 void register_server(int * newsd) {
     int sd = sd_copy(*newsd);
     char res = '0';
-    char buffer[256];
-    read_line(sd, buffer, 256);
-    printf("Nombre recibido: %s\n", buffer);
+    char name[256];
+    read_line(sd, name, 256);
+    printf("Nombre recibido: %s\n", name);
+
+    char *username = calloc(PATH_MAX, sizeof(char));
+    get_username_path(username, name);
+
+    if(access(username, F_OK) == 0){
+        res = '1';
+        write_line(sd, &res);
+        return;
+    }
+    FILE *userfile;
+    userfile = fopen(username, "w+");
+    if(userfile == NULL){
+        res = '2';
+        write_line(sd, &res);
+        return;
+    }
+    fclose(userfile);
+  
     write_line(sd, &res);
+    close(sd);
+
 	return;
 }
 
@@ -105,16 +129,24 @@ void list_users_server(int * newsd) {
     write_line(sd, "0");
     write_line(sd, "1");
     for (int i = 0; i < 1; i++) {
-        //write_line(sd, "alicia");
-        //write_line(sd, "1111.2222.3333.4444");
-        //write_line(sd, "42069");
+        write_line(sd, "alicia");
+        write_line(sd, "1111.2222.3333.4444");
+        write_line(sd, "42069");
     }
 	return;
 }
 
 void list_content_server(int * newsd) {
+    
 	int sd = sd_copy(*newsd);
+    char res = '0';
+    char nombre[256];
+    read_line(sd, nombre, 256);
+    printf("Nombre recibido: %s\n", nombre);
+
+    write_line(sd, &res);
 	return;
+    
 }
 
 void disconnect_server(int * newsd) {
