@@ -354,7 +354,13 @@ class client:
 
                     elif(line[0]=="UNREGISTER") :
                         if (len(line) == 2) :
-                            client.unregister(line[1])
+                            resultado = client.unregister(line[1]) 
+                            if resultado == client.RC.OK:
+                                print("c> UNREGISTER OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> UNREGISTER FAIL")
                         else :
                             print("Syntax error. Usage: UNREGISTER <userName>")
 

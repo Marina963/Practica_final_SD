@@ -43,36 +43,63 @@ void register_server(int * newsd) {
     read_line(sd, name, 256);
     printf("Nombre recibido: %s\n", name);
 
-    char *username = calloc(PATH_MAX, sizeof(char));
-    get_username_path(username, name);
+    char *userpath = calloc(PATH_MAX, sizeof(char));
+    get_username_path(userpath, name);
 
-    if(access(username, F_OK) == 0){
+    if(access(userpath, F_OK) == 0){
         res = '1';
         write_line(sd, &res);
+        free(userpath);
         return;
     }
     FILE *userfile;
-    userfile = fopen(username, "w+");
+    userfile = fopen(userpath, "w+");
     if(userfile == NULL){
         res = '2';
         write_line(sd, &res);
+        free(userpath);
         return;
     }
     fclose(userfile);
   
     write_line(sd, &res);
     close(sd);
-
+    free(userpath);
 	return;
 }
 
 void unregister_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char buffer[256];
-    read_line(sd, buffer, 256);
-    printf("Nombre recibido: %s\n", buffer);
+    char name[256];
+    read_line(sd, name, 256);
+    printf("Nombre recibido: %s\n", name);
+
+    char *userpath = calloc(PATH_MAX, sizeof(char));
+    get_username_path(userpath, name);
+
+    if(access(userpath, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(userpath);
+        return;
+    }
+
+    DIR *dir = opendir(abs_path);
+    struct dirent* users;
+    while((users = readdir(dir)) != NULL){
+        if(strcmp(users->d_name, name) == 0){
+            if(remove(userpath) == -1){
+                res = '2';
+                write_line(sd, &res);
+                free(userpath);
+                return;
+            } 
+        }
+    }
+
     write_line(sd, &res);
+    free(userpath);
 	return;
 }
 
