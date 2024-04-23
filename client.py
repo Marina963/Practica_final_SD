@@ -1,4 +1,5 @@
 from enum import Enum
+import threading
 import argparse
 import socket
 
@@ -18,8 +19,15 @@ class client:
     _server = None
     _port = -1
     _user = ""
+    _server_socket = None
+    _wait = 0
 
     # ******************** METHODS *******************
+    @staticmethod
+    def wait_socket_connect():
+        while(client._wait):
+            newsd = client._server_socket.accept()[0]
+            
 
     @staticmethod
     def register(user):
@@ -77,6 +85,15 @@ class client:
     @staticmethod
     def connect(user):
         # Función de connect de cliente
+        client._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        client._server_socket.bind(('localhost',0))
+        client._server_socket.listen(8)
+
+        client._wait = 0
+        t = threading.Thread(target=client.wait_socket_connect)
+        t.start()
+
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
@@ -85,12 +102,11 @@ class client:
         try:
             client.write_string(sd, b'CONNECT\0')
             client.write_string(sd, (user+'\0').encode())
-            client.write_string(sd, (str(client._port) + '\0').encode())
+            client.write_string(sd, (str(client._server_socket.getsockname()[1] ) + '\0').encode())
             respuesta = ''
             
             respuesta = client.read_string(sd)
           
-            
             if respuesta ==  '0':
                 res = client.RC.OK
                 
@@ -366,8 +382,16 @@ class client:
 
                     elif(line[0]=="CONNECT") :
                         if (len(line) == 2) :
-                            client.connect(line[1])
                             client._user = line[1]
+                            resultado = client.connect(line[1])
+                            if resultado == client.RC.OK:
+                                print("c> CONNECT OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> CONNECT FAIL, USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> USER ALREADY CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                                print("c> CONNECT FAIL")
                         else :
                             print("Syntax error. Usage: CONNECT <userName>")
                     

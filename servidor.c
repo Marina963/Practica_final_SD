@@ -15,8 +15,11 @@
 #define cero 0
 
 // Paths
-const char *rel_path="./users";
-char *abs_path;
+const char *rel_path_data="./users_data";
+char *abs_path_data;
+
+const char *rel_path_connected="./users_connected";
+char *abs_path_connected;
 
 // Variables de mutex
 pthread_mutex_t mutex;
@@ -32,9 +35,15 @@ int sd_copy(int sd){
     return sd;
 }
 
-void get_username_path(char *username, char *name){
-    sprintf(username, "%s/%s", abs_path, name);         
+void get_userdata_path(char *username, char *name){
+    sprintf(username, "%s/%s", abs_path_data, name);         
 }
+
+void get_user_connected_path(char *user_connected, char *name) {
+    sprintf(user_connected, "%s/%s", abs_path_connected, name);
+}
+
+
 
 void register_server(int * newsd) {
     int sd = sd_copy(*newsd);
@@ -43,28 +52,29 @@ void register_server(int * newsd) {
     read_line(sd, name, 256);
     printf("Nombre recibido: %s\n", name);
 
-    char *userpath = calloc(PATH_MAX, sizeof(char));
-    get_username_path(userpath, name);
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
 
-    if(access(userpath, F_OK) == 0){
+    if(access(user_data_path, F_OK) == 0){
         res = '1';
         write_line(sd, &res);
-        free(userpath);
+        free(user_data_path);
         return;
     }
+
     FILE *userfile;
-    userfile = fopen(userpath, "w+");
+    userfile = fopen(user_data_path, "w+");
     if(userfile == NULL){
         res = '2';
         write_line(sd, &res);
-        free(userpath);
+        free(user_data_path);
         return;
     }
     fclose(userfile);
   
     write_line(sd, &res);
     close(sd);
-    free(userpath);
+    free(user_data_path);
 	return;
 }
 
@@ -75,44 +85,81 @@ void unregister_server(int * newsd) {
     read_line(sd, name, 256);
     printf("Nombre recibido: %s\n", name);
 
-    char *userpath = calloc(PATH_MAX, sizeof(char));
-    get_username_path(userpath, name);
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
 
-    if(access(userpath, F_OK) != 0){
+    if(access(user_data_path, F_OK) != 0){
         res = '1';
         write_line(sd, &res);
-        free(userpath);
+        free(user_data_path);
         return;
     }
 
-    DIR *dir = opendir(abs_path);
+    DIR *dir = opendir(abs_path_data);
     struct dirent* users;
     while((users = readdir(dir)) != NULL){
         if(strcmp(users->d_name, name) == 0){
-            if(remove(userpath) == -1){
+            if(remove(user_data_path) == -1){
                 res = '2';
                 write_line(sd, &res);
-                free(userpath);
+                free(user_data_path);
                 return;
             } 
         }
     }
 
     write_line(sd, &res);
-    free(userpath);
+    free(user_data_path);
 	return;
 }
 
 void connect_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
-    char puerto[8];
-    read_line(sd, puerto, 8);
-    printf("Puerto recibido: %s\n", puerto);
+    char name[256];
+    read_line(sd, name, 256);
+    printf("Nombre recibido: %s\n", name);
+
+    char port[8];
+    read_line(sd, port, 8);
+    printf("Puerto recibido: %s\n", port);
+
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
+
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        return;
+    }
+
+    char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, name);
+
+    if (access(user_connected_path, F_OK) == 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        return ;
+    }
+
+    FILE * userfile;
+    userfile = fopen(user_connected_path, "w+");
+    if (userfile == NULL) {
+        res = '3';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        return;
+    }
+
+    if (fprintf(userfile, "%s\n", port) < 0 ) {res = '3';}
+
     write_line(sd, &res);
+    free(user_data_path);
+    free(user_connected_path);
 	return;
 }
 
@@ -227,8 +274,9 @@ int main(int argc, char **argv) {
 	pthread_attr_init(&attr_thr);
 	pthread_attr_setdetachstate(&attr_thr, PTHREAD_CREATE_DETACHED);
 	
-	// Se le da valor al path de las tuplas
-	abs_path = realpath(rel_path, NULL);
+	// Se le da valor a los paths
+	abs_path_data = realpath(rel_path_data, NULL);
+    abs_path_connected = realpath(rel_path_connected, NULL);
 
 	// Creación del socket del servidor
 	int socket_server = create_server_socket(puerto, SOCK_STREAM);
