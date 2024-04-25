@@ -423,7 +423,15 @@ class client:
 
                     elif(line[0]=="DISCONNECT") :
                         if (len(line) == 2) :
-                            client.disconnect(line[1])
+                            resultado = client.disconnect(line[1])
+                            if resultado == client.RC.OK:
+                            	print("c> DISCONNECT OK")
+                            elif resultado == client.RC.ERROR_1:
+                            	print("c> DISCONNECT FAIL / USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                            	print("c> DISCONNECT FAIL / USER NOT CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                            	print("c> DISCONNECT FAIL")
                         else :
                             print("Syntax error. Usage: DISCONNECT <userName>")
 

@@ -119,12 +119,10 @@ void connect_server(int * newsd) {
     char res = '0';
     char name[256];
     read_line(sd, name, 256);
-    printf("Nombre recibido: %s\n", name);
-
+   
     char port[8];
     read_line(sd, port, 8);
-    printf("Puerto recibido: %s\n", port);
-
+    
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
 
@@ -172,9 +170,11 @@ void publish_server(int * newsd) {
     char nombre[256];
     read_line(sd, nombre, 256);
     printf("Nombre recibido: %s\n", nombre);
+    
     char fichero[256];
     read_line(sd, fichero, 256);
     printf("Fichero recibido: %s\n", fichero);
+    
     char descr[256];
     read_line(sd, descr, 256);
     printf("Descripcion recibido: %s\n", descr);
@@ -229,10 +229,55 @@ void list_content_server(int * newsd) {
 void disconnect_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
+    char name[256];
+    read_line(sd, name, 256);
+    printf("Nombre recibido: %s\n", name);
+    
+    // Checkea a ver si el usuario existe
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
+
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        return;
+    }
+    
+    // Checkea a ver si el usuario no está conectado
+    char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, name);
+
+    if (access(user_connected_path, F_OK) != 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        return ;
+    }
+    
+    // Borra el fichero del usuario
+    DIR *dir = opendir(abs_path_connected);
+    struct dirent* users;
+    while((users = readdir(dir)) != NULL){
+        if(strcmp(users->d_name, name) == 0){
+            if(remove(user_connected_path) == -1){
+                res = '3';
+                write_line(sd, &res);
+                free(user_data_path);
+                free(user_connected_path);
+                return;
+            } 
+        }
+    }
+    
+    // Manda la respuesta
     write_line(sd, &res);
+    
+    // Libera memoria y socket
+    free(user_data_path);
+    free(user_connected_path);
+	close(sd);
 	return;
 }
 
