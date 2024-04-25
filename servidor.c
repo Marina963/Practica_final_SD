@@ -70,9 +70,9 @@ void register_server(int * newsd) {
         free(user_data_path);
         return;
     }
-    fclose(userfile);
   
     write_line(sd, &res);
+    fclose(userfile);
     close(sd);
     free(user_data_path);
 	return;
@@ -109,6 +109,7 @@ void unregister_server(int * newsd) {
     }
 
     write_line(sd, &res);
+    close(sd);
     free(user_data_path);
 	return;
 }
@@ -158,6 +159,8 @@ void connect_server(int * newsd) {
     if (fprintf(userfile, "%s\n", port) < 0 ) {res = '3';}
 
     write_line(sd, &res);
+    fclose(userfile);
+    close(sd);
     free(user_data_path);
     free(user_connected_path);
 	return;
