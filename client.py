@@ -416,7 +416,17 @@ class client:
 
                     elif(line[0]=="DELETE") :
                         if (len(line) == 2) :
-                            client.delete(line[1])
+                            resultado = client.delete(line[1])
+                            if resultado == client.RC.OK:
+                                print("c> DELETE OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> DELETE FAIL, USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> DELETE FAIL, USER NOT CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                                print("c> DELETE FAIL, CONTENT NOT PUBLISHED")
+                            elif resultado == client.RC.ERROR_4:
+                                print("c> DELETE FAIL")
                         else :
                             print("Syntax error. Usage: DELETE <fileName>")
 

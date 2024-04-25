@@ -268,14 +268,65 @@ void publish_server(int * newsd) {
 void delete_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
-    char fichero[256];
-    read_line(sd, fichero, 256);
-    printf("Fichero recibido: %s\n", fichero);
+    char name[256];
+    read_line(sd, name, 256);
+    
+    char file_name[256];
+    read_line(sd, file_name, 256);
+    
+    // Comprueba que el usuario esté registrado
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
 
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        return;
+    }
+
+	// Comprueba que el usuario esté conectado
+	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, name);
+
+    if (access(user_connected_path, F_OK) != 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        return ;
+    }
+    
+	// Comprueba que el fichero exista
+    char *userfile = calloc(PATH_MAX, sizeof(char));
+    sprintf(userfile, "%s/%s", user_data_path, file_name);
+    if (access(userfile, F_OK) != 0) {
+    	res = '3';
+    	write_line(sd, &res);
+    	free(user_data_path);
+    	free(user_connected_path);
+    	free(userfile);
+    	return ;
+    }
+    
+    // Borra el fichero
+    if (remove(userfile) == -1) {
+    	res = '4';
+    	write_line(sd, &res);
+    	free(user_data_path);
+    	free(user_connected_path);
+    	free(userfile);
+    	return ;
+    }
+	
+    // Devuelve el valor al cliente
     write_line(sd, &res);
+    
+    // Libera memoria socket
+    free(user_data_path);
+    free(user_connected_path);
+    free(userfile);
+    close(sd);
 	return;
 }
 
