@@ -370,6 +370,7 @@ class client:
 
                     elif(line[0]=="UNREGISTER") :
                         if (len(line) == 2) :
+                            client.disconnect(line[1])
                             resultado = client.unregister(line[1]) 
                             if resultado == client.RC.OK:
                                 print("c> UNREGISTER OK")
@@ -399,7 +400,17 @@ class client:
                         if (len(line) >= 3) :
                             #  Remove first two words
                             description = ' '.join(line[2:])
-                            client.publish(line[1], description)
+                            resultado = client.publish(line[1], description)
+                            if resultado == client.RC.OK:
+                                print("c> PUBLISH OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> PUBLISH FAIL, USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> PUBLISH FAIL, USER NOT CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                                print("c> PUBLISH FAIL, CONTENT ALREADY PUBLISHED")
+                            elif resultado == client.RC.ERROR_4:
+                                print("c> PUBLISH FAIL")
                         else :
                             print("Syntax error. Usage: PUBLISH <fileName> <description>")
 

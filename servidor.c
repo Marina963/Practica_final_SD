@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -43,36 +44,32 @@ void get_user_connected_path(char *user_connected, char *name) {
     sprintf(user_connected, "%s/%s", abs_path_connected, name);
 }
 
-
-
 void register_server(int * newsd) {
     int sd = sd_copy(*newsd);
     char res = '0';
     char name[256];
     read_line(sd, name, 256);
-    printf("Nombre recibido: %s\n", name);
-
+    
+    // Consigue el path del directorio
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
-
-    if(access(user_data_path, F_OK) == 0){
-        res = '1';
-        write_line(sd, &res);
-        free(user_data_path);
-        return;
-    }
-
-    FILE *userfile;
-    userfile = fopen(user_data_path, "w+");
-    if(userfile == NULL){
-        res = '2';
-        write_line(sd, &res);
-        free(user_data_path);
-        return;
-    }
-  
+	
+	// Crea el directorio
+	if (mkdir(user_data_path, 0755) != 0) {
+		
+		// Comprueba que no exista ya
+		if (errno == EEXIST) {
+			res = '1';
+		}
+		else {
+			res = '2';
+		}
+	}
+    
+    // Devuelve el valor al cliente
     write_line(sd, &res);
-    fclose(userfile);
+    
+    // Libera memoria y el socket
     close(sd);
     free(user_data_path);
 	return;
@@ -83,32 +80,54 @@ void unregister_server(int * newsd) {
     char res = '0';
     char name[256];
     read_line(sd, name, 256);
-    printf("Nombre recibido: %s\n", name);
-
+    
+    // Consigue el path del directorio
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
 
-    if(access(user_data_path, F_OK) != 0){
-        res = '1';
-        write_line(sd, &res);
-        free(user_data_path);
-        return;
-    }
+	// Abre el directorio del usuario
+	DIR *dir = opendir(user_data_path);
+	if (errno == ENOENT) {
+		res = '1';
+		write_line(sd, &res);
+		
+		// Libera memoria y el socket
+		close(sd);
+		free(user_data_path);
+	}
+	struct dirent* userfiles;
+	
+	// Borra los ficheros del usuario
+	char *file_name;
+	while ((userfiles = readdir(dir)) != NULL) {
+		
+		// Si el objeto no es un directorio
+		if (strcmp(userfiles->d_name, ".") != 0 && strcmp(userfiles->d_name, "..") != 0) {
+			
+			// Se reserva espacio para el nombre del fichero y se obtiene su path absoluto
+			file_name = calloc(PATH_MAX, sizeof(char));
+			sprintf(file_name, "%s/%s", user_data_path, userfiles->d_name);
+			
+			// Se borra el fichero, si hay algún error, se actualiza la respuesta
+			if (remove(file_name) == -1) {	
+				perror("");
+				res = '2';
+			}
+			
+			// Se libera el espacio dinámico
+			free(file_name);
+		}
+	}
 
-    DIR *dir = opendir(abs_path_data);
-    struct dirent* users;
-    while((users = readdir(dir)) != NULL){
-        if(strcmp(users->d_name, name) == 0){
-            if(remove(user_data_path) == -1){
-                res = '2';
-                write_line(sd, &res);
-                free(user_data_path);
-                return;
-            } 
-        }
-    }
-
+	// Borra el directorio
+    if (rmdir(user_data_path) != 0) {
+		res = '2';    	
+   	}
+   	
+   	// Devuelve el valor al cliente
     write_line(sd, &res);
+    
+    // Libera memoria y el socket
     close(sd);
     free(user_data_path);
 	return;
@@ -154,6 +173,7 @@ void connect_server(int * newsd) {
         return;
     }
 
+
     if (fprintf(userfile, "%s\n", port) < 0 ) {res = '3';}
 
     write_line(sd, &res);
@@ -165,20 +185,83 @@ void connect_server(int * newsd) {
 }
 
 void publish_server(int * newsd) {
+	// Recibe nombre de usuario, nombre de fichero y descripción
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
+    char name[256];
+    read_line(sd, name, 256);
     
-    char fichero[256];
-    read_line(sd, fichero, 256);
-    printf("Fichero recibido: %s\n", fichero);
+    char file_name[256];
+    read_line(sd, file_name, 256);
     
     char descr[256];
     read_line(sd, descr, 256);
-    printf("Descripcion recibido: %s\n", descr);
+    
+    // Comprueba que el usuario esté registrado
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
+
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        return;
+    }
+
+	// Comprueba que el usuario esté conectado
+	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, name);
+
+    if (access(user_connected_path, F_OK) != 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        return ;
+    }
+    
+    // Comprueba que el fichero no exista ya
+    char *userfile = calloc(PATH_MAX, sizeof(char));
+    sprintf(userfile, "%s/%s", user_data_path, file_name);
+    if (access(userfile, F_OK) == 0) {
+    	res = '3';
+    	write_line(sd, &res);
+    	free(user_data_path);
+    	free(user_connected_path);
+    	free(userfile);
+    	return ;
+    }
+    
+    // Escribe la descripción en el fichero
+    FILE * fd;
+    fd = fopen(userfile, "w+");
+    if (fd == NULL) {
+    	res = '4';
+    	write_line(sd, &res);
+    	free(user_data_path);
+    	free(user_connected_path);
+    	free(userfile);
+    	return ;
+    }
+    
+    if (fprintf(fd, "%s\n", descr) < 0) {
+    	res = '4';
+    	write_line(sd, &res);
+    	free(user_data_path);
+    	free(user_connected_path);
+    	free(userfile);
+    	return ;
+    }
+    
+    // Se envía la respuesta
     write_line(sd, &res);
+    
+    // Se libera memoria, el socket y el fichero
+    free(user_data_path);
+    free(user_connected_path);
+    free(userfile);
+    close(sd);
+    fclose(fd);	
 	return;
 }
 
@@ -325,7 +408,7 @@ int main(int argc, char **argv) {
 	// Se le da valor a los paths
 	abs_path_data = realpath(rel_path_data, NULL);
     abs_path_connected = realpath(rel_path_connected, NULL);
-
+	
 	// Creación del socket del servidor
 	int socket_server = create_server_socket(puerto, SOCK_STREAM);
 	if (socket_server < 0) {
