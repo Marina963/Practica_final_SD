@@ -37,6 +37,7 @@ int sd_copy(int sd){
 }
 
 void get_userdata_path(char *username, char *name){
+	// Función que consigue el 
     sprintf(username, "%s/%s", abs_path_data, name);         
 }
 
@@ -118,7 +119,9 @@ void unregister_server(int * newsd) {
 			free(file_name);
 		}
 	}
-
+	
+	closedir(dir);
+	
 	// Borra el directorio
     if (rmdir(user_data_path) != 0) {
 		res = '2';    	
@@ -149,6 +152,7 @@ void connect_server(int * newsd) {
         res = '1';
         write_line(sd, &res);
         free(user_data_path);
+        close(sd);
         return;
     }
 
@@ -160,6 +164,7 @@ void connect_server(int * newsd) {
         write_line(sd, &res);
         free(user_data_path);
         free(user_connected_path);
+        close(sd);
         return ;
     }
 
@@ -170,6 +175,7 @@ void connect_server(int * newsd) {
         write_line(sd, &res);
         free(user_data_path);
         free(user_connected_path);
+        close(sd);
         return;
     }
 
@@ -205,6 +211,7 @@ void publish_server(int * newsd) {
         res = '1';
         write_line(sd, &res);
         free(user_data_path);
+        close(sd);
         return;
     }
 
@@ -217,6 +224,7 @@ void publish_server(int * newsd) {
         write_line(sd, &res);
         free(user_data_path);
         free(user_connected_path);
+		close(sd);
         return ;
     }
     
@@ -229,6 +237,7 @@ void publish_server(int * newsd) {
     	free(user_data_path);
     	free(user_connected_path);
     	free(userfile);
+    	close(sd);
     	return ;
     }
     
@@ -241,6 +250,7 @@ void publish_server(int * newsd) {
     	free(user_data_path);
     	free(user_connected_path);
     	free(userfile);
+    	close(sd);
     	return ;
     }
     
@@ -250,6 +260,7 @@ void publish_server(int * newsd) {
     	free(user_data_path);
     	free(user_connected_path);
     	free(userfile);
+    	close(sd);
     	return ;
     }
     
@@ -282,6 +293,7 @@ void delete_server(int * newsd) {
         res = '1';
         write_line(sd, &res);
         free(user_data_path);
+        close(sd);
         return;
     }
 
@@ -294,6 +306,7 @@ void delete_server(int * newsd) {
         write_line(sd, &res);
         free(user_data_path);
         free(user_connected_path);
+        close(sd);
         return ;
     }
     
@@ -306,6 +319,7 @@ void delete_server(int * newsd) {
     	free(user_data_path);
     	free(user_connected_path);
     	free(userfile);
+    	close(sd);
     	return ;
     }
     
@@ -316,6 +330,7 @@ void delete_server(int * newsd) {
     	free(user_data_path);
     	free(user_connected_path);
     	free(userfile);
+    	close(sd);
     	return ;
     }
 	
@@ -333,28 +348,182 @@ void delete_server(int * newsd) {
 void list_users_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
+    char name[256];
+    read_line(sd, name, 256);
+    
+    // Comprueba que el usuario esté registrado
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
 
-    write_line(sd, "0");
-    write_line(sd, "1");
-    for (int i = 0; i < 1; i++) {
-        write_line(sd, "alicia");
-        write_line(sd, "1111.2222.3333.4444");
-        write_line(sd, "42069");
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        close(sd);
+        return;
     }
+
+    free(user_data_path);
+    
+	// Comprueba que el usuario esté conectado
+	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, name);
+
+    if (access(user_connected_path, F_OK) != 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_connected_path);
+        close(sd);
+        return ;
+    }
+    
+    free(user_connected_path);
+    
+    // Abre el directorio con los ficheros
+    DIR* dir = opendir(abs_path_connected);
+    if (dir == NULL) {
+    	res = '3';
+        write_line(sd, &res);
+        close(sd);
+        return;
+    }
+    struct dirent* userfiles;
+    
+    // Cuenta el número de ficheros
+    int file_counter = 0;
+    while ((userfiles = readdir(dir)) != NULL) {
+    	if (userfiles->d_type == DT_REG) {
+    		file_counter++;
+    	}
+    }
+    closedir(dir);
+
+	// Escribe la cabecera del mensaje    
+    char *users_info = calloc(400*file_counter, sizeof(char));
+    sprintf(users_info, "%c\n%d\n", res, file_counter);
+    
+    // Abre el directorio de nuevo
+    dir = opendir(abs_path_connected);
+    if (dir == NULL) {
+    	res = '3';
+        write_line(sd, &res);
+        close(sd);
+        return;
+    }
+    
+    // Inicializa las variables
+    char ip[64] = "1111.2222.3333.4444";
+    char port[8];
+    char file_name[PATH_MAX];
+    char temp[2048];
+    FILE * fd;
+    
+    while ((userfiles = readdir(dir)) != NULL) {
+    	
+    	if (userfiles->d_type == DT_REG) {
+    		
+    		// Abre el fichero
+    		sprintf(file_name, "%s/%s", abs_path_connected, userfiles->d_name);
+    		fd = fopen(file_name, "r");
+    		if (fd == NULL) {
+    			res = '3';
+    			write_line(sd, &res);
+        		close(sd);
+        		return;
+    		}
+    		
+    		// Lee el puerto
+    		if (fscanf(fd, "%s", port) < 0) {
+    			res = '3';
+    			write_line(sd, &res);
+        		close(sd);
+        		return;
+    		}
+    		
+    		sprintf(temp, "%s\n%s\n%s\n", userfiles->d_name, ip, port);
+    		strcat(users_info, temp);
+    		fclose(fd);
+    	}
+    }
+    
+    write_line(sd, users_info);
+    closedir(dir);
+    close(sd);
 	return;
 }
 
 void list_content_server(int * newsd) {
     
+    // Recibe el nombre del usuario que realiza la acción y el nombre del usuario del que se quiere saber los ficheros
 	int sd = sd_copy(*newsd);
     char res = '0';
-    char nombre[256];
-    read_line(sd, nombre, 256);
-    printf("Nombre recibido: %s\n", nombre);
+    char user[256];
+    read_line(sd, user, 256);
+    
+    char name[256];
+    read_line(sd, name, 256);
+    
+    // Comprueba que el usuario que realiza la operación esté registrado
+    char *user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, user);
 
+    if(access(user_data_path, F_OK) != 0){
+        res = '1';
+        write_line(sd, &res);
+        free(user_data_path);
+        close(sd);
+        return;
+    }
+    
+    // Comprueba que el usuario que realiza la operación esté conectado
+	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
+    get_user_connected_path(user_connected_path, user);
+
+    if (access(user_connected_path, F_OK) != 0) {
+        res = '2';
+        write_line(sd, &res);
+        free(user_data_path);
+        free(user_connected_path);
+        close(sd);
+        return ;
+    }
+    
+    free(user_data_path);
+    free(user_connected_path);
+    
+    // Comprueba que el usuario que cuyo contenido se quiere conocer esté registrado
+    user_data_path = calloc(PATH_MAX, sizeof(char));
+    get_userdata_path(user_data_path, name);
+
+    if(access(user_data_path, F_OK) != 0){
+        res = '3';
+        write_line(sd, &res);
+        free(user_data_path);
+        close(sd);
+        return;
+    }
+    
+    // Abre el directorio con los ficheros
+    DIR* dir = opendir(user_data_path);
+    if (dir == NULL) {
+    	res = '4';
+        write_line(sd, &res);
+        free(user_data_path);
+        close(sd);
+        return;
+    }
+    struct dirent* userfiles;
+    
+    // Cuenta el número de ficheros
+    int file_counter = 0;
+    while ((userfiles = (readdir(dir))) != NULL) {
+    	if (userfiles->d_type == DT_REG) {
+    		file_counter++;
+    	}
+    }
+    
+    // Lee los ficheros del usuario cuyo contenido se quiere saber
+    // char * file_info = calloc(file_counter*520, sizeof(char));
     write_line(sd, &res);
 	return;
     

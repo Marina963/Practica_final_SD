@@ -21,6 +21,7 @@ class client:
     _user = ""
     _server_socket = None
     _wait = 0
+    _info_users = None
 
     # ******************** METHODS *******************
     @staticmethod
@@ -42,7 +43,7 @@ class client:
             client.write_string(sd, (user+'\0').encode())
             respuesta = ''
 
-            respuesta = client.read_string(sd)
+            respuesta = client.read_char(sd)
             if respuesta ==  '0':
                 res = client.RC.OK
             elif respuesta == '1':
@@ -67,7 +68,7 @@ class client:
            
             respuesta = ''
 
-            respuesta = client.read_string(sd)
+            respuesta = client.read_char(sd)
             if respuesta ==  '0':
                 res = client.RC.OK
                 
@@ -105,7 +106,7 @@ class client:
             client.write_string(sd, (str(client._server_socket.getsockname()[1] ) + '\0').encode())
             respuesta = ''
             
-            respuesta = client.read_string(sd)
+            respuesta = client.read_char(sd)
           
             if respuesta ==  '0':
                 res = client.RC.OK
@@ -141,7 +142,7 @@ class client:
             respuesta = ''
 
             # Se espera a la respuesta
-            respuesta = client.read_string(sd)
+            respuesta = client.read_char(sd)
              
             if respuesta ==  '0':
                 res = client.RC.OK
@@ -182,8 +183,7 @@ class client:
             respuesta = ''
 
             # Se espera a la respuesta
-            respuesta = client.read_string(sd)
-        
+            respuesta = client.read_char(sd)
                 
             if respuesta ==  '0':
                 res = client.RC.OK
@@ -225,7 +225,7 @@ class client:
 
             # Se espera a la respuesta
           
-            respuesta =client.read_string(sd)
+            respuesta =client.read_char(sd)
             if respuesta ==  '0':
                 res = client.RC.OK
                 
@@ -247,7 +247,7 @@ class client:
             return res
 
     @staticmethod
-    def  listusers() :
+    def listusers() :
         # Función de disconnect de cliente
         # Se crea el socket
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -264,22 +264,16 @@ class client:
             respuesta = ''
 
             # Se espera a la respuesta
-            
             respuesta = client.read_string(sd)
             
-            if respuesta ==  '0':
+            if respuesta[0] == '0':
                 res = client.RC.OK
-                n_user = client.read_string(sd)
+                respuesta = respuesta.split("\n")
                 
-                print(n_user)
-                lista = {}
-                for i in range (n_user):
-                    username= client.read_string(sd)
-                    ip_user = client.read_string(sd)
-                    port_user = client.read_number(sd)
-                    lista[username] = (ip_user, port_user)
-                
-                print(lista)
+                client._info_users = {}
+                n_user = int(respuesta[1])
+                for i in range(n_user):
+                    client._info_users[respuesta[3*i+2]] = (respuesta[3*i+3], respuesta[3*i+4])
                 
             elif respuesta == '1':
                 res = client.RC.ERROR_1
@@ -309,6 +303,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'LIST_CONTENT\0')
+            client.write_string(sd, (client._user+'\0').encode())
             client.write_string(sd, (user+'\0').encode())
            
 
@@ -432,7 +427,17 @@ class client:
 
                     elif(line[0]=="LIST_USERS") :
                         if (len(line) == 1) :
-                            client.listusers()
+                            resultado = client.listusers()
+                            if resultado == client.RC.OK:
+                                print("c> LIST_USERS OK")
+                                for key in client._info_users.keys():
+                                    print("\t" + key + "\t" + client._info_users[key][0]+"\t"+client._info_users[key][1])
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> LIST_USERS FAIL, USER NOT CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                                print("c> LIST_USERS FAIL")
                         else :
                             print("Syntax error. Use: LIST_USERS")
 
@@ -502,6 +507,16 @@ class client:
         return True
 
     @staticmethod
+    def read_char(sock):
+        char = ''
+        while True:
+            msg = sock.recv(1)
+            if (msg == b'\0'):
+                break
+            char += msg.decode()
+            return char
+    
+    @staticmethod
     def read_string(sock):
         str = ''
         while True:
@@ -509,7 +524,7 @@ class client:
             if (msg == b'\0'):
                 break
             str += msg.decode()
-            return str
+        return str
         
     @staticmethod
     def write_string(sock, str):
