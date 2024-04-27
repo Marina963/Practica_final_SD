@@ -95,18 +95,18 @@ void unregister_server(int * newsd) {
 		// Libera memoria y el socket
 		close(sd);
 		free(user_data_path);
+		return ;
 	}
 	struct dirent* userfiles;
 	
 	// Borra los ficheros del usuario
-	char *file_name;
+	char file_name[PATH_MAX];
 	while ((userfiles = readdir(dir)) != NULL) {
 		
 		// Si el objeto no es un directorio
 		if (strcmp(userfiles->d_name, ".") != 0 && strcmp(userfiles->d_name, "..") != 0) {
 			
-			// Se reserva espacio para el nombre del fichero y se obtiene su path absoluto
-			file_name = calloc(PATH_MAX, sizeof(char));
+			// Se obtiene su path absoluto
 			sprintf(file_name, "%s/%s", user_data_path, userfiles->d_name);
 			
 			// Se borra el fichero, si hay algún error, se actualiza la respuesta
@@ -115,8 +115,6 @@ void unregister_server(int * newsd) {
 				res = '2';
 			}
 			
-			// Se libera el espacio dinámico
-			free(file_name);
 		}
 	}
 	
@@ -164,7 +162,6 @@ void connect_server(struct socket_info * new_sd_info) {
         close(sd);
         return;
     }
-	free(user_data_path);
 
 	// Se mira si el usuario está conectado
     char *user_connected_path = calloc(PATH_MAX, sizeof(char));
@@ -178,6 +175,7 @@ void connect_server(struct socket_info * new_sd_info) {
         close(sd);
         return ;
     }
+	free(user_data_path);
 
 	// Se abre el fichero del cliente
     FILE * userfile;
@@ -185,7 +183,6 @@ void connect_server(struct socket_info * new_sd_info) {
     if (userfile == NULL) {
         res = '3';
         write_line(sd, &res);
-        free(user_data_path);
         free(user_connected_path);
         close(sd);
         return;
@@ -490,6 +487,8 @@ void list_content_server(int * newsd) {
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, user);
 
+	printf("%s\n", user_data_path);
+
     if(access(user_data_path, F_OK) != 0){
         res = '1';
         write_line(sd, &res);
@@ -510,10 +509,9 @@ void list_content_server(int * newsd) {
         close(sd);
         return ;
     }
-    
     free(user_data_path);
     free(user_connected_path);
-    
+     
     // Comprueba que el usuario que cuyo contenido se quiere conocer esté registrado
     user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
@@ -547,8 +545,53 @@ void list_content_server(int * newsd) {
     closedir(dir);
     
     // Lee los ficheros del usuario cuyo contenido se quiere saber
-    // char * file_info = calloc(file_counter*520, sizeof(char));
-    write_line(sd, &res);
+    char * file_info = calloc(file_counter*600, sizeof(char));
+    char temp[600];
+    dir = opendir(user_data_path);
+    FILE * fd;
+    char filename[PATH_MAX];
+    
+    // Pone la cabecera
+    sprintf(file_info, "%s\n%d\n", &res, file_counter);
+    
+    // Lee todos los ficheros
+    while ((userfiles = (readdir(dir))) != NULL) {
+    	if (userfiles->d_type == DT_REG) {
+    		
+    		// Abre el fichero
+    		sprintf(filename, "%s/%s", user_data_path, userfiles->d_name);
+    		fd = fopen(filename, "r");
+    		if (fd == NULL) {
+    			res = '4';
+    			write_line(sd, &res);
+    			free(user_data_path);
+    			fclose(fd);
+    			close(sd);
+    			return;
+    		}
+    		
+    		// Consigue la descripción
+    		char desc[256];
+    		if (fscanf(fd, "%[^\n]s\n", desc) < 0) {
+    			res = '4';
+    			write_line(sd, &res);
+    			free(user_data_path);
+    			fclose(fd);
+    			close(sd);
+    			return;
+    		}
+    		
+    		// Guardas la información
+    		sprintf(temp, "%s\n%s\n", userfiles->d_name, desc);
+    		strcat(file_info, temp);
+    		fclose(fd);
+    	}
+    }
+    
+    // Se envía la respuesta
+    write_line(sd, file_info);
+    close(sd);
+    free(user_data_path);
 	return;
     
 }

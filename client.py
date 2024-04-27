@@ -22,6 +22,7 @@ class client:
     _server_socket = None
     _wait = 0
     _info_users = None
+    _content = None
 
     # ******************** METHODS *******************
     @staticmethod
@@ -311,9 +312,16 @@ class client:
 
             # Se espera a la respuesta
           
-            respuesta =client.read_string(sd)
-            if respuesta ==  '0':
+            respuesta = client.read_string(sd)
+            
+            if respuesta[0] ==  '0':
                 res = client.RC.OK
+                respuesta = respuesta.split("\n")
+                
+                client._content = {}
+                n_user = int(respuesta[1])
+                for i in range(n_user):
+                    client._content[respuesta[i*2+2]] = respuesta[i*2+3]
                 
             elif respuesta == '1':
                 res = client.RC.ERROR_1
@@ -446,7 +454,19 @@ class client:
 
                     elif(line[0]=="LIST_CONTENT") :
                         if (len(line) == 2) :
-                            client.listcontent(line[1])
+                            resultado = client.listcontent(line[1])
+                            if resultado == client.RC.OK:
+                                print("c> LIST_CONTENT OK")
+                                for key in client._content.keys():
+                                    print("\t" + key + "\t" + client._content[key])
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> LIST_CONTENT FAIL, USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> LIST_CONTENT FAIL, USER NOT CONNECTED")
+                            elif resultado == client.RC.ERROR_3:
+                                print("c> LIST_CONTENT FAIL, REMOTE USER DOES NOT EXIST")
+                            elif resultado == client.RC.ERROR_4:
+                                print("c> LIST_CONTENT FAIL")
                         else :
                             print("Syntax error. Usage: LIST_CONTENT <userName>")
 
