@@ -136,15 +136,24 @@ void unregister_server(int * newsd) {
 	return;
 }
 
-void connect_server(int * newsd) {
-	int sd = sd_copy(*newsd);
+void connect_server(struct socket_info * new_sd_info) {
+	
+	// Se inicializan las variables
+    char ip[64];
+    memcpy(ip, new_sd_info->ip, 64);
+    
+	int sd = sd_copy(new_sd_info->sd);
     char res = '0';
+
+	// Recibe los parámetros
     char name[256];
     read_line(sd, name, 256);
    
     char port[8];
     read_line(sd, port, 8);
     
+    
+    // Se mira si el usuario está registrado
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
 
@@ -155,7 +164,9 @@ void connect_server(int * newsd) {
         close(sd);
         return;
     }
+	free(user_data_path);
 
+	// Se mira si el usuario está conectado
     char *user_connected_path = calloc(PATH_MAX, sizeof(char));
     get_user_connected_path(user_connected_path, name);
 
@@ -168,6 +179,7 @@ void connect_server(int * newsd) {
         return ;
     }
 
+	// Se abre el fichero del cliente
     FILE * userfile;
     userfile = fopen(user_connected_path, "w+");
     if (userfile == NULL) {
@@ -179,13 +191,14 @@ void connect_server(int * newsd) {
         return;
     }
 
-
+	// Se guarda la IP y el puerto
+    if (fprintf(userfile, "%s\n", ip) < 0 ) {res = '3';}
     if (fprintf(userfile, "%s\n", port) < 0 ) {res = '3';}
 
+	
     write_line(sd, &res);
     fclose(userfile);
     close(sd);
-    free(user_data_path);
     free(user_connected_path);
 	return;
 }
@@ -412,7 +425,7 @@ void list_users_server(int * newsd) {
     }
     
     // Inicializa las variables
-    char ip[64] = "1111.2222.3333.4444";
+    char ip[64];
     char port[8];
     char file_name[PATH_MAX];
     char temp[2048];
@@ -433,9 +446,19 @@ void list_users_server(int * newsd) {
     		}
     		
     		// Lee el puerto
+    		if (fscanf(fd, "%s", ip) < 0) {
+    			res = '3';
+    			write_line(sd, &res);
+    			fclose(fd);
+        		close(sd);
+        		return;
+    		}
+    		
+    		// Lee el puerto
     		if (fscanf(fd, "%s", port) < 0) {
     			res = '3';
     			write_line(sd, &res);
+    			fclose(fd);
         		close(sd);
         		return;
     		}
@@ -521,6 +544,7 @@ void list_content_server(int * newsd) {
     		file_counter++;
     	}
     }
+    closedir(dir);
     
     // Lee los ficheros del usuario cuyo contenido se quiere saber
     // char * file_info = calloc(file_counter*520, sizeof(char));
@@ -636,14 +660,16 @@ int main(int argc, char **argv) {
 	}
 	char buffer[16];
 	memset(buffer, cero, sizeof(buffer));
+	struct socket_info new_sd_info;
 	int new_sd;
 	
 	// Bucle de espera a las peticiones
 	while(1) {
-		new_sd = accept_server(socket_server);
+		new_sd_info = accept_server(socket_server);
 		
 		// Si se acepta correctamente la petición
-		if (new_sd >= 0) {
+		if (new_sd_info.code_res == 0) {
+			new_sd = new_sd_info.sd;
 			
 			if (read_line(new_sd, buffer, 16) == -1) {
 				printf("Error: no se lee la operación\n");
@@ -664,7 +690,7 @@ int main(int argc, char **argv) {
                     pthread_create(&thread, &attr_thr, (void*)unregister_server, (void*)&new_sd);
                 }
                 else if (strcmp(buffer, "CONNECT") == 0) {
-                    pthread_create(&thread, &attr_thr, (void*)connect_server, (void*)&new_sd);
+                    pthread_create(&thread, &attr_thr, (void*)connect_server, (void*)&new_sd_info);
                 }
                 else if (strcmp(buffer, "PUBLISH") == 0) {
                     pthread_create(&thread, &attr_thr, (void*)publish_server, (void*)&new_sd);

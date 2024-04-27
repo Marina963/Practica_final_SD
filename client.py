@@ -369,6 +369,9 @@ class client:
                             resultado = client.unregister(line[1]) 
                             if resultado == client.RC.OK:
                                 print("c> UNREGISTER OK")
+                                if (client._user != ''):
+                                	client.disconnect(client._user)
+                                	client._user = ''
                             elif resultado == client.RC.ERROR_1:
                                 print("c> USER DOES NOT EXIST")
                             elif resultado == client.RC.ERROR_2:
@@ -452,6 +455,7 @@ class client:
                             resultado = client.disconnect(line[1])
                             if resultado == client.RC.OK:
                             	print("c> DISCONNECT OK")
+                            	client._user = ''
                             elif resultado == client.RC.ERROR_1:
                             	print("c> DISCONNECT FAIL / USER DOES NOT EXIST")
                             elif resultado == client.RC.ERROR_2:
@@ -469,6 +473,9 @@ class client:
 
                     elif(line[0]=="QUIT") :
                         if (len(line) == 1) :
+                            if (client._user != ''):
+                                client.disconnect(client._user)
+                                client._user = ''
                             break
                         else :
                             print("Syntax error. Use: QUIT")

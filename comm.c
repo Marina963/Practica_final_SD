@@ -73,18 +73,23 @@ int create_client_socket(char * remote, int port) {
 	return sd;
 }
 
-int accept_server(int sd) {
-	int sc;
+struct socket_info accept_server(int sd) {
+
 	struct sockaddr_in addr_client;
 	socklen_t size = sizeof(addr_client);
+	
+	struct socket_info res;	
+	res.code_res = 0;
 
-	sc = accept(sd, (struct sockaddr *)&addr_client, (socklen_t *)&size); 
-	if (sc < 0) {
+	res.sd = accept(sd, (struct sockaddr *)&addr_client, (socklen_t *)&size); 
+	if (res.sd < 0) {
 		printf("Error en el accept del servidor\n");
-		return -1;
+		res.code_res = -1;
+		return res;
 	}
 	
-	return sc;
+	inet_ntop(AF_INET, &addr_client.sin_addr, res.ip, 64); 
+	return res;
 }
 
 int send_message(int sd, char *buffer, int len) {
