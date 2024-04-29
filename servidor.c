@@ -22,6 +22,9 @@ char *abs_path_data;
 const char *rel_path_connected="./users_connected";
 char *abs_path_connected;
 
+const char *rel_path_files="./users_files";
+char *abs_path_files;
+
 // Variables de mutex
 pthread_mutex_t mutex;
 pthread_cond_t copiado;
@@ -55,6 +58,9 @@ void register_server(int * newsd) {
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
 	
+	char *user_files_path = calloc(PATH_MAX, sizeof(char));
+	sprintf(user_files_path, "%s/%s", abs_path_files, name);
+	
 	// Crea el directorio
 	if (mkdir(user_data_path, 0755) != 0) {
 		
@@ -63,6 +69,18 @@ void register_server(int * newsd) {
 			res = '1';
 		}
 		else {
+			res = '2';
+		}
+		
+		write_line(sd, &res);
+		close(sd);
+		return;
+	}
+	
+	if (mkdir(user_files_path, 0755) != 0) {
+		
+		// Comprueba si existía o no
+		if (errno != EEXIST) {
 			res = '2';
 		}
 	}
@@ -487,9 +505,7 @@ void list_content_server(int * newsd) {
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, user);
 
-	printf("%s\n", user_data_path);
-
-    if(access(user_data_path, F_OK) != 0){
+	if(access(user_data_path, F_OK) != 0){
         res = '1';
         write_line(sd, &res);
         free(user_data_path);
@@ -695,6 +711,7 @@ int main(int argc, char **argv) {
 	// Se le da valor a los paths
 	abs_path_data = realpath(rel_path_data, NULL);
     abs_path_connected = realpath(rel_path_connected, NULL);
+    abs_path_files = realpath(rel_path_files, NULL);
 	
 	// Creación del socket del servidor
 	int socket_server = create_server_socket(puerto, SOCK_STREAM);

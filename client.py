@@ -2,6 +2,7 @@ from enum import Enum
 import threading
 import argparse
 import socket
+import os
 
 class client:
 
@@ -29,7 +30,23 @@ class client:
     def wait_socket_connect():
         while(client._wait):
             newsd = client._server_socket.accept()[0]
+            file_name = client.read_string(newsd)
             
+            if (client._user == ""):
+                client.write_string(newsd, b"2\0")
+                newsd.close()
+            else:
+                file_name = os.path.abspath("users_files/" + client._user + "/" + file_name)
+                try:
+                    file_in = open(file_name, "r")
+                    res = "0\n" + file_in.read() + "\0"
+                    client.write_string(newsd, res.encode())
+                    file_in.close()
+                    newsd.close()
+                except  :
+                    client.write_string(newsd, b"1\0")
+                    newsd.close()
+                    
 
     @staticmethod
     def register(user):
@@ -87,13 +104,14 @@ class client:
     @staticmethod
     def connect(user):
         # Función de connect de cliente
-        client._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        client._server_socket.bind(('localhost',0))
-        client._server_socket.listen(8)
-
-        client._wait = 0
-        t = threading.Thread(target=client.wait_socket_connect)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(('localhost',0))
+        server_socket.listen(8)
+        client._server_socket = server_socket
+        
+        client._wait = 1
+        t = threading.Thread(target=client.wait_socket_connect, daemon=True)
         t.start()
 
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -147,6 +165,7 @@ class client:
              
             if respuesta ==  '0':
                 res = client.RC.OK
+                client._wait = 0
                 
             elif respuesta == '1':
                 res = client.RC.ERROR_1
@@ -299,7 +318,7 @@ class client:
         sd.connect(server_address)
 
         # Se inicializa la respuesta
-        res = client.RC.ERROR_1
+        res = client.RC.ERROR_4
 
         try:
             # Se manda la operación y el usuario
@@ -341,9 +360,44 @@ class client:
             return res
 
     @staticmethod
-    def  getfile(user,  remote_FileName,  local_FileName) :
-        #  Write your code here
-        return client.RC.ERROR
+    def  getfile(user, remote_FileName, local_FileName) :
+        # Se crea el socket
+        res = client.RC.ERROR_2
+        
+        found = False
+        for filename in client._content.keys():
+            if (remote_FileName == filename):
+                found = True
+        if not found:
+            return res
+            
+        sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sd.connect((client._info_users[user][0], int(client._info_users[user][1])))
+        except:
+            sd.close()
+            return res
+        
+        try:
+            # Se manda el fichero que se quiere obtener
+            client.write_string(sd, (remote_FileName+'\0').encode())
+            
+            # Espera a una respuesta
+            respuesta = ''
+            respuesta = client.read_string(sd)
+            if respuesta[0] == '0':
+                res = client.RC.OK
+                file_name = os.path.abspath("users_files/" + client._user + "/" + local_FileName)
+                file_out = open(file_name, "w")
+                file_out.write(respuesta[2:])
+                file_out.close()
+            elif respuesta == '1':
+                res = client.RC.ERROR_1
+            elif respuesta == '2':
+                res = client.RC.ERROR_2
+        finally:
+            sd.close()
+            return res
 
     # *
     # **
@@ -487,7 +541,15 @@ class client:
 
                     elif(line[0]=="GET_FILE") :
                         if (len(line) == 4) :
-                            client.getfile(line[1], line[2], line[3])
+                            client.listusers()
+                            client.listcontent(line[1])
+                            resultado = client.getfile(line[1], line[2], line[3])
+                            if resultado == client.RC.OK:
+                                print("c> GET_FILE OK")
+                            elif resultado == client.RC.ERROR_1:
+                                print("c> GET_FILE FAIL / FILE NOT EXIST")
+                            elif resultado == client.RC.ERROR_2:
+                                print("c> GET_FILE FAIL")
                         else :
                             print("Syntax error. Usage: GET_FILE <userName> <remote_fileName> <local_fileName>")
 
@@ -496,7 +558,7 @@ class client:
                             if (client._user != ''):
                                 client.disconnect(client._user)
                                 client._user = ''
-                            break
+                            return 
                         else :
                             print("Syntax error. Use: QUIT")
                     else :
