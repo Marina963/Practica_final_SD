@@ -51,6 +51,11 @@ void get_user_connected_path(char *user_connected, char *name) {
 void register_server(int * newsd) {
     int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     
@@ -97,6 +102,11 @@ void register_server(int * newsd) {
 void unregister_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     
@@ -161,6 +171,10 @@ void connect_server(struct socket_info * new_sd_info) {
 	int sd = sd_copy(new_sd_info->sd);
     char res = '0';
 
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
 	// Recibe los parámetros
     char name[256];
     read_line(sd, name, 256);
@@ -222,6 +236,11 @@ void publish_server(int * newsd) {
 	// Recibe nombre de usuario, nombre de fichero y descripción
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     
@@ -307,6 +326,11 @@ void publish_server(int * newsd) {
 void delete_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     
@@ -376,6 +400,11 @@ void delete_server(int * newsd) {
 void list_users_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     
@@ -495,6 +524,11 @@ void list_content_server(int * newsd) {
     // Recibe el nombre del usuario que realiza la acción y el nombre del usuario del que se quiere saber los ficheros
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char user[256];
     read_line(sd, user, 256);
     
@@ -615,6 +649,11 @@ void list_content_server(int * newsd) {
 void disconnect_server(int * newsd) {
 	int sd = sd_copy(*newsd);
     char res = '0';
+
+    char date[32];
+    read_line(sd, date, 32);
+    printf("%s\n", date);
+
     char name[256];
     read_line(sd, name, 256);
     printf("Nombre recibido: %s\n", name);

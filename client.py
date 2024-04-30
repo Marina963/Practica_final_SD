@@ -2,6 +2,7 @@ from enum import Enum
 import threading
 import argparse
 import socket
+import zeep
 import os
 
 class client:
@@ -24,12 +25,19 @@ class client:
     _wait = 0
     _info_users = None
     _content = None
+    _z_client = zeep.Client(wsdl = "http://localhost:8080/?wsdl")
+                            
 
     # ******************** METHODS *******************
     @staticmethod
     def wait_socket_connect():
         while(client._wait):
             newsd = client._server_socket.accept()[0]
+
+            if (client._wait == 0):
+                newsd.close()
+                return
+            
             file_name = client.read_string(newsd)
             
             if (client._user == ""):
@@ -58,6 +66,7 @@ class client:
 
         try:
             client.write_string(sd, b'REGISTER\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (user+'\0').encode())
             respuesta = ''
 
@@ -82,6 +91,7 @@ class client:
 
         try:
             client.write_string(sd, b'UNREGISTER\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (user+'\0').encode())
            
             respuesta = ''
@@ -121,6 +131,7 @@ class client:
 
         try:
             client.write_string(sd, b'CONNECT\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (user+'\0').encode())
             client.write_string(sd, (str(client._server_socket.getsockname()[1] ) + '\0').encode())
             respuesta = ''
@@ -157,6 +168,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'DISCONNECT\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (user+'\0').encode())
             respuesta = ''
 
@@ -166,6 +178,8 @@ class client:
             if respuesta ==  '0':
                 res = client.RC.OK
                 client._wait = 0
+                client._server_socket(socket.SHUT_RDWR)
+                client._server_socket.close()
                 
             elif respuesta == '1':
                 res = client.RC.ERROR_1
@@ -196,6 +210,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'PUBLISH\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (client._user+'\0').encode())
             client.write_string(sd, (fileName + '\0').encode())
             client.write_string(sd, (description + '\0').encode())
@@ -238,6 +253,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'DELETE\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (client._user+'\0').encode())
             client.write_string(sd, (fileName + '\0').encode())
 
@@ -280,6 +296,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'LIST_USERS\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (client._user+'\0').encode())
             respuesta = ''
 
@@ -323,6 +340,7 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'LIST_CONTENT\0')
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (client._user+'\0').encode())
             client.write_string(sd, (user+'\0').encode())
            
@@ -432,8 +450,8 @@ class client:
                             if resultado == client.RC.OK:
                                 print("c> UNREGISTER OK")
                                 if (client._user != ''):
-                                	client.disconnect(client._user)
-                                	client._user = ''
+                                    client.disconnect(client._user)
+                                    client._user = ''
                             elif resultado == client.RC.ERROR_1:
                                 print("c> USER DOES NOT EXIST")
                             elif resultado == client.RC.ERROR_2:
@@ -528,14 +546,14 @@ class client:
                         if (len(line) == 2) :
                             resultado = client.disconnect(line[1])
                             if resultado == client.RC.OK:
-                            	print("c> DISCONNECT OK")
-                            	client._user = ''
+                                print("c> DISCONNECT OK")
+                                client._user = ''
                             elif resultado == client.RC.ERROR_1:
-                            	print("c> DISCONNECT FAIL / USER DOES NOT EXIST")
+                                print("c> DISCONNECT FAIL / USER DOES NOT EXIST")
                             elif resultado == client.RC.ERROR_2:
-                            	print("c> DISCONNECT FAIL / USER NOT CONNECTED")
+                                print("c> DISCONNECT FAIL / USER NOT CONNECTED")
                             elif resultado == client.RC.ERROR_3:
-                            	print("c> DISCONNECT FAIL")
+                                print("c> DISCONNECT FAIL")
                         else :
                             print("Syntax error. Usage: DISCONNECT <userName>")
 
