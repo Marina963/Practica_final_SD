@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "comm.h"
+#include "rpc/info.h"
 
 #define PATH_MAX 4096
 #define cero 0
@@ -48,16 +49,43 @@ void get_user_connected_path(char *user_connected, char *name) {
     sprintf(user_connected, "%s/%s", abs_path_connected, name);
 }
 
+void print_data(char *name, char *op, char *f_name, char *date){
+    CLIENT *clnt;
+    enum clnt_stat res;
+
+    clnt = clnt_create ("localhost", INFO, INFOVER, "tcp");
+	if (clnt == NULL) {
+		clnt_pcreateerror ("localhost");
+		exit (1);
+	}
+
+    struct arg datos;
+    memcpy(datos.user, name, 256);
+    memcpy(datos.op, op, 16);
+    memcpy(datos.f_name, f_name, 256);
+    memcpy(datos.date, date, 32);
+    
+    res = print_info_x_1(datos, NULL, clnt);
+
+    if (res != RPC_SUCCESS) {
+		clnt_perror (clnt, "call failed");
+	}
+
+	clnt_destroy (clnt);
+}
+
 void register_server(int * newsd) {
     int sd = sd_copy(*newsd);
     char res = '0';
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
+
 
     char name[256];
     read_line(sd, name, 256);
+
+    print_data(name, "REGISTER", "", date);
     
     // Consigue el path del directorio
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
@@ -105,10 +133,11 @@ void unregister_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char name[256];
     read_line(sd, name, 256);
+
+    print_data(name, "UNREGISTER", "", date);
     
     // Consigue el path del directorio
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
@@ -173,7 +202,6 @@ void connect_server(struct socket_info * new_sd_info) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
 	// Recibe los parámetros
     char name[256];
@@ -181,6 +209,8 @@ void connect_server(struct socket_info * new_sd_info) {
    
     char port[8];
     read_line(sd, port, 8);
+
+    print_data(name, "CONNECT", "", date);
     
     
     // Se mira si el usuario está registrado
@@ -239,7 +269,6 @@ void publish_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char name[256];
     read_line(sd, name, 256);
@@ -250,6 +279,8 @@ void publish_server(int * newsd) {
     char descr[256];
     read_line(sd, descr, 256);
     
+    print_data(name, "PUBLISH", file_name, date);
+
     // Comprueba que el usuario esté registrado
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
     get_userdata_path(user_data_path, name);
@@ -329,13 +360,14 @@ void delete_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char name[256];
     read_line(sd, name, 256);
     
     char file_name[256];
     read_line(sd, file_name, 256);
+
+    print_data(name, "DELETE", file_name, date);
     
     // Comprueba que el usuario esté registrado
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
@@ -403,10 +435,11 @@ void list_users_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char name[256];
     read_line(sd, name, 256);
+
+    print_data(name, "LIST_USERS", "", date);
     
     // Comprueba que el usuario esté registrado
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
@@ -527,13 +560,14 @@ void list_content_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char user[256];
     read_line(sd, user, 256);
     
     char name[256];
     read_line(sd, name, 256);
+
+    print_data(user, "LIST_CONTENT", "", date);
     
     // Comprueba que el usuario que realiza la operación esté registrado
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
@@ -652,11 +686,11 @@ void disconnect_server(int * newsd) {
 
     char date[32];
     read_line(sd, date, 32);
-    printf("%s\n", date);
 
     char name[256];
     read_line(sd, name, 256);
-    printf("Nombre recibido: %s\n", name);
+    
+    print_data(name, "DISCONNECT", "", date);
     
     // Checkea a ver si el usuario existe
     char *user_data_path = calloc(PATH_MAX, sizeof(char));
