@@ -4,4 +4,5 @@ PUBLISH archivo_1 prueba
 CONNECT user1
 PUBLISH archivo_1 prueba
 PUBLISH archivo_1 prueba
+UNREGISTER user1
 QUIT

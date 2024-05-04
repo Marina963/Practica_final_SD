@@ -1,7 +1,12 @@
 GET_FILE user1 archivo_1 archivo_2
 REGISTER user1
-CONNECT user1
-PUBLISH archivo_1 preueba1
+REGISTER user2
 GET_FILE user1 archivo_1 archivo_2
-GET_FILE user1 archivo_2 archivo_1
+CONNECT user2
+PUBLISH archivo_1 prueba
+CONNECT user1
+GET_FILE user2 archivo_1 archivo_2
+GET_FILE user2 archivo_2 archivo_1
+UNREGISTER user1
+UNREGISTER user2
 QUIT

@@ -8,4 +8,5 @@ DELETE archivo_2
 PUBLISH archivo_2
 DISCONNENT archivo_2
 DELETE archivo_2
+UNREGISTER user1
 QUIT
