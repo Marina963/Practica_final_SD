@@ -1,0 +1,11 @@
+DELETE archivo_2
+REGISTER user1
+DELETE archivo_2
+CONNECT user1
+DELETE archivo_2
+PUBLISH archivo_2  
+DELETE archivo_2
+PUBLISH archivo_2
+DISCONNENT archivo_2
+DELETE archivo_2
+QUIT

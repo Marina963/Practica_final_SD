@@ -1,0 +1,10 @@
+LIST_CONTENT user1
+REGISTER user1
+LIST_CONTENT user1
+CONNECT user1
+LIST_CONTENT user1
+PUBLISH archivo_3 prueba
+LIST_CONTENT user1
+PUBLISH archivo_4 prueba2
+LIST_CONTENT user1
+QUIT
