@@ -297,7 +297,7 @@ void publish_server(int * newsd) {
 	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
     get_user_connected_path(user_connected_path, name);
 
-    if (access(user_connected_path, F_OK) != 0) {
+    if (access(user_connected_path, F_OK) != 0 || strcmp(name, "") == 0) {
         res = '2';
         write_line(sd, &res);
         free(user_data_path);
@@ -385,7 +385,7 @@ void delete_server(int * newsd) {
 	char *user_connected_path = calloc(PATH_MAX, sizeof(char));
     get_user_connected_path(user_connected_path, name);
 
-    if (access(user_connected_path, F_OK) != 0) {
+    if (access(user_connected_path, F_OK) != 0 || strcmp(name, "") == 0) {
         res = '2';
         write_line(sd, &res);
         free(user_data_path);
@@ -516,7 +516,7 @@ void list_users_server(int * newsd) {
     		sprintf(file_name, "%s/%s", abs_path_connected, userfiles->d_name);
     		fd = fopen(file_name, "r");
     		if (fd == NULL) {
-    			res = '3';
+				res = '3';
     			write_line(sd, &res);
         		close(sd);
         		return;

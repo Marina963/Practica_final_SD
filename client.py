@@ -114,6 +114,8 @@ class client:
     @staticmethod
     def connect(user):
         # Función de connect de cliente
+    
+        # Crea el socket para get_file    
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(('localhost',0))
@@ -285,6 +287,9 @@ class client:
     @staticmethod
     def listusers() :
         # Función de disconnect de cliente
+        if (client._user == ''):
+            return client.RC.ERROR_2
+        
         # Se crea el socket
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
@@ -311,7 +316,6 @@ class client:
                 n_user = int(respuesta[1])
                 for i in range(n_user):
                     client._info_users[respuesta[3*i+2]] = (respuesta[3*i+3], respuesta[3*i+4])
-                
             elif respuesta == '1':
                 res = client.RC.ERROR_1
                 
@@ -461,8 +465,10 @@ class client:
 
                     elif(line[0]=="CONNECT") :
                         if (len(line) == 2) :
-                            client._user = line[1]
+                            if (client._user != '' and client._user != line[1]):
+                                client.disconnect(client._user)
                             resultado = client.connect(line[1])
+                            client._user = line[1]
                             if resultado == client.RC.OK:
                                 print("c> CONNECT OK")
                             elif resultado == client.RC.ERROR_1:
