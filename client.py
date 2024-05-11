@@ -115,42 +115,50 @@ class client:
     def connect(user):
         # Función de connect de cliente
     
-        # Crea el socket para get_file    
+        # Crea el socket para get_file y el thread   
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(('localhost',0))
         server_socket.listen(8)
-        client._server_socket = server_socket
         
-        client._wait = 1
         t = threading.Thread(target=client.wait_socket_connect, daemon=True)
-        t.start()
 
+		# Crea el socket que se conecta al servidor
         sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = (client._server, client._port)
         sd.connect(server_address)
         res = client.RC.ERROR_3
 
         try:
+        	# Manda los datos
             client.write_string(sd, b'CONNECT\0')
             client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
             client.write_string(sd, (user+'\0').encode())
             client.write_string(sd, (str(client._server_socket.getsockname()[1] ) + '\0').encode())
             respuesta = ''
             
+            # Espera la respuesta
             respuesta = client.read_char(sd)
           
             if respuesta ==  '0':
                 res = client.RC.OK
                 
-            elif respuesta == '1':
-                res = client.RC.ERROR_1
+                # Si la respuesta es efectiva, guarda el socket y lanza el hilo
+                client._wait = 1
+                client._server_socket = server_socket
+                t.start()
                 
+            elif respuesta == '1':
+            	# Si la respuesta es un error, cerrará el descriptor de socket
+                res = client.RC.ERROR_1
+                server_socket.close()
+                                
             elif respuesta == '2':
                 res = client.RC.ERROR_2
-                
+                server_socket.close()                
             elif respuesta == b'3':
                 res = client.RC.ERROR_3
+                server_socket.close()
                 
         finally:
             sd.close()
