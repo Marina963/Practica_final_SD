@@ -253,7 +253,6 @@ void connect_server(struct socket_info * new_sd_info) {
 	// Se guarda la IP y el puerto
     if (fprintf(userfile, "%s\n", ip) < 0 ) {res = '3';}
     if (fprintf(userfile, "%s\n", port) < 0 ) {res = '3';}
-
 	
     write_line(sd, &res);
     fclose(userfile);

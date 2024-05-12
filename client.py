@@ -46,12 +46,18 @@ class client:
             else:
                 file_name = os.path.abspath("users_files/" + client._user + "/" + file_name)
                 try:
-                    file_in = open(file_name, "r")
-                    res = "0\n" + file_in.read() + "\0"
-                    client.write_string(newsd, res.encode())
-                    file_in.close()
+                    res = "0\n"
+                    
+                    with open(file_name, "r") as file_in:                    
+                        file_info = file_in.readlines()
+                    for i in range(len(file_info)):
+                        res += file_info[i]
+                    res += "\0"
+                    
+                    client.write_string(newsd, res.encode('utf-8'))
                     newsd.close()
-                except  :
+                except Exception as e:
+                    print(e)
                     client.write_string(newsd, b"1\0")
                     newsd.close()
                     
@@ -66,8 +72,8 @@ class client:
 
         try:
             client.write_string(sd, b'REGISTER\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (user+'\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (user+'\0').encode('utf-8'))
             respuesta = ''
 
             respuesta = client.read_char(sd)
@@ -91,8 +97,8 @@ class client:
 
         try:
             client.write_string(sd, b'UNREGISTER\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (user+'\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (user+'\0').encode('utf-8'))
            
             respuesta = ''
 
@@ -132,15 +138,15 @@ class client:
         try:
         	# Manda los datos
             client.write_string(sd, b'CONNECT\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (user+'\0').encode())
-            client.write_string(sd, (str(client._server_socket.getsockname()[1] ) + '\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (user+'\0').encode('utf-8'))
+            client.write_string(sd, (str(server_socket.getsockname()[1] ) + '\0').encode('utf-8'))
             respuesta = ''
             
             # Espera la respuesta
             respuesta = client.read_char(sd)
           
-            if respuesta ==  '0':
+            if respuesta == '0':
                 res = client.RC.OK
                 
                 # Si la respuesta es efectiva, guarda el socket y lanza el hilo
@@ -155,7 +161,8 @@ class client:
                                 
             elif respuesta == '2':
                 res = client.RC.ERROR_2
-                server_socket.close()                
+                server_socket.close()
+                                
             elif respuesta == b'3':
                 res = client.RC.ERROR_3
                 server_socket.close()
@@ -178,8 +185,8 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'DISCONNECT\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (user+'\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (user+'\0').encode('utf-8'))
             respuesta = ''
 
             # Se espera a la respuesta
@@ -220,10 +227,10 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'PUBLISH\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (client._user+'\0').encode())
-            client.write_string(sd, (fileName + '\0').encode())
-            client.write_string(sd, (description + '\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (client._user+'\0').encode('utf-8'))
+            client.write_string(sd, (fileName + '\0').encode('utf-8'))
+            client.write_string(sd, (description + '\0').encode('utf-8'))
 
             respuesta = ''
 
@@ -263,9 +270,9 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'DELETE\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (client._user+'\0').encode())
-            client.write_string(sd, (fileName + '\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (client._user+'\0').encode('utf-8'))
+            client.write_string(sd, (fileName + '\0').encode('utf-8'))
 
             respuesta = ''
 
@@ -309,8 +316,8 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'LIST_USERS\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (client._user+'\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (client._user+'\0').encode('utf-8'))
             respuesta = ''
 
             # Se espera a la respuesta
@@ -352,9 +359,9 @@ class client:
         try:
             # Se manda la operación y el usuario
             client.write_string(sd, b'LIST_CONTENT\0')
-            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode())
-            client.write_string(sd, (client._user+'\0').encode())
-            client.write_string(sd, (user+'\0').encode())
+            client.write_string(sd, (client._z_client.service.get_time() +'\0').encode('utf-8'))
+            client.write_string(sd, (client._user+'\0').encode('utf-8'))
+            client.write_string(sd, (user+'\0').encode('utf-8'))
            
 
             respuesta = ''
@@ -410,21 +417,25 @@ class client:
         
         try:
             # Se manda el fichero que se quiere obtener
-            client.write_string(sd, (remote_FileName+'\0').encode())
+            client.write_string(sd, (remote_FileName+'\0').encode('utf-8'))
             
             # Espera a una respuesta
             respuesta = ''
             respuesta = client.read_string(sd)
+
             if respuesta[0] == '0':
                 res = client.RC.OK
                 file_name = os.path.abspath("users_files/" + client._user + "/" + local_FileName)
                 file_out = open(file_name, "w")
                 file_out.write(respuesta[2:])
                 file_out.close()
+            
             elif respuesta == '1':
                 res = client.RC.ERROR_1
+                
             elif respuesta == '2':
                 res = client.RC.ERROR_2
+                
         finally:
             sd.close()
             return res
@@ -634,7 +645,7 @@ class client:
             msg = sock.recv(1)
             if (msg == b'\0'):
                 break
-            char += msg.decode()
+            char += msg.decode('utf-8')
             return char
     
     @staticmethod
@@ -644,12 +655,12 @@ class client:
             msg = sock.recv(1)
             if (msg == b'\0'):
                 break
-            str += msg.decode()
+            str += msg.decode('utf-8')
         return str
         
     @staticmethod
-    def write_string(sock, str):
-        sock.sendall(str)
+    def write_string(sock, message):
+        sock.sendall(message)
         
     @staticmethod
     def read_number(sock):
