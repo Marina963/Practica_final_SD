@@ -1,4 +1,4 @@
-# Practica_final_SD
+# Práctica_final_SD
 Guía de compilación y ejecución de la aplicación distribuida.
 
 ## Pasos de compilación

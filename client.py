@@ -31,33 +31,31 @@ class client:
     # ******************** METHODS *******************
     @staticmethod
     def wait_socket_connect():
+        # Función que se encarga de manejar el hilo
         while(client._wait):
+        
+            # Acepta una petición
             newsd = client._server_socket.accept()[0]
 
             if (client._wait == 0):
                 newsd.close()
                 return
             
+            # Consigue el nombre del fichero
             file_name = client.read_string(newsd)
-            
             if (client._user == ""):
                 client.write_string(newsd, b"2\0")
                 newsd.close()
             else:
+                # Manda el fichero
                 file_name = os.path.abspath("users_files/" + client._user + "/" + file_name)
                 try:
-                    res = "0\n"
-                    
                     with open(file_name, "r") as file_in:                    
-                        file_info = file_in.readlines()
-                    for i in range(len(file_info)):
-                        res += file_info[i]
-                    res += "\0"
-                    
+                        file_info = file_in.read()
+                    res = "0\n" + file_info + "\0"
                     client.write_string(newsd, res.encode('utf-8'))
                     newsd.close()
-                except Exception as e:
-                    print(e)
+                except:
                     client.write_string(newsd, b"1\0")
                     newsd.close()
                     
